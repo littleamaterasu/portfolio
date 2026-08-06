@@ -6,13 +6,13 @@ server {
     root   /usr/share/nginx/html;
     index  index.html;
 
-    # Unity WebGL cần đúng MIME type cho các file này, một số bản nginx
-    # cũ không có sẵn trong mime.types
-    types {
-        application/wasm        wasm;
-        application/octet-stream data;
-        application/javascript  js;
-    }
+    # QUAN TRỌNG: không dùng khối `types {}` ở đây -- nó sẽ THAY THẾ toàn bộ
+    # bảng mime.types mặc định (chứ không phải bổ sung), khiến .html mất
+    # luôn Content-Type text/html, rơi về default_type application/octet-stream
+    # -> trình duyệt hiểu là file nhị phân và bật hộp thoại tải về (đây chính
+    # là lỗi "index.html bị tải về dạng file"). mime.types mặc định đi kèm
+    # nginx >=1.19.10 đã có sẵn .html, .js, .wasm đúng chuẩn, không cần khai
+    # báo thêm gì.
 
     # nếu Unity build có Compression Format = Gzip (mặc định), Unity sẽ
     # sinh ra .data.gz/.wasm.gz/.framework.js.gz -- gzip_static tự phục vụ
