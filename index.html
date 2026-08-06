@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes">
+    <title>Who's that developer?</title>
+    <link rel="shortcut icon" href="TemplateData/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+      :root{
+        --bg:        #0a0d0f;
+        --panel:     #10151a;
+        --line:      #1d262d;
+        --ink:       #e7edf0;
+        --ink-dim:   #6d7b84;
+        --accent:    #4dffb4;
+        --accent-dim:#1f4a3a;
+        --warn:      #ff7a59;
+        --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+        --font-sans: 'Space Grotesk', 'Segoe UI', sans-serif;
+      }
+
+      *{ box-sizing: border-box; }
+
+      html, body{
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--bg);
+        overflow: hidden;
+        font-family: var(--font-sans);
+      }
+
+      #unity-container{
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        background: var(--bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #unity-canvas{
+        display: block;
+        background: var(--bg);
+        /* actual size is set in JS to keep a locked 1920x1080 (16:9)
+           aspect ratio, scaled down/up to best fit the browser window */
+      }
+
+      /* ---------- custom loading screen ---------- */
+
+      #boot-screen{
+        position: fixed;
+        inset: 0;
+        z-index: 20;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 40px;
+        background:
+          radial-gradient(circle at 50% 35%, rgba(77,255,180,0.08), transparent 60%),
+          var(--bg);
+        transition: opacity .6s ease, visibility .6s ease;
+      }
+
+      #boot-screen.hidden{
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      .boot-eyebrow{
+        font-family: var(--font-mono);
+        font-size: 12px;
+        letter-spacing: 0.35em;
+        text-transform: uppercase;
+        color: var(--ink-dim);
+      }
+
+      .boot-eyebrow span{
+        color: var(--accent);
+      }
+
+      /* silhouette reveal */
+      .reveal-frame{
+        position: relative;
+        width: 220px;
+        height: 220px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+
+      .reveal-frame::before,
+      .reveal-frame::after{
+        content:"";
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        border-color: var(--accent);
+        border-style: solid;
+      }
+      .reveal-frame::before{ top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+      .reveal-frame::after{ bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+      .glyph{
+        font-family: var(--font-mono);
+        font-weight: 800;
+        font-size: 108px;
+        line-height: 1;
+        color: var(--accent);
+        filter: brightness(0) contrast(0);
+        transition: filter .25s linear;
+        user-select: none;
+      }
+
+      .scan{
+        position: absolute;
+        left: 0; right: 0;
+        top: 0;
+        height: 2px;
+        background: var(--accent);
+        box-shadow: 0 0 12px 2px var(--accent);
+        transform: translateY(0);
+      }
+
+      .boot-title{
+        font-family: var(--font-mono);
+        font-weight: 700;
+        font-size: 22px;
+        color: var(--ink);
+        text-align: center;
+        letter-spacing: 0.02em;
+      }
+
+      .boot-title .cursor{
+        display: inline-block;
+        width: 10px;
+        margin-left: 2px;
+        background: var(--accent);
+        animation: blink 1s steps(1) infinite;
+      }
+
+      @keyframes blink{ 50%{ opacity: 0; } }
+
+      /* progress bar */
+      .bar-wrap{
+        width: 300px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .bar-track{
+        position: relative;
+        width: 100%;
+        height: 6px;
+        background: var(--line);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+
+      .bar-fill{
+        position: absolute;
+        inset: 0;
+        width: 0%;
+        background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+        border-radius: 3px;
+        transition: width .15s ease-out;
+      }
+
+      .bar-meta{
+        display: flex;
+        justify-content: space-between;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: 0.05em;
+        color: var(--ink-dim);
+      }
+
+      #bar-percent{ color: var(--accent); }
+
+      /* ---------- unity footer, restyled ---------- */
+
+      #unity-warning{
+        position: fixed;
+        top: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 30;
+        font-family: var(--font-mono);
+        font-size: 12px;
+      }
+
+      #unity-footer{
+        position: fixed;
+        bottom: 14px;
+        right: 18px;
+        z-index: 15;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      #unity-build-title{
+        display: none;
+      }
+
+      #unity-fullscreen-button{
+        width: 34px;
+        height: 34px;
+        background: rgba(16,21,26,0.85);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        cursor: pointer;
+        position: relative;
+      }
+
+      #unity-fullscreen-button:hover{
+        border-color: var(--accent);
+      }
+
+      #unity-fullscreen-button::before{
+        content: "⤢";
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--ink);
+        font-size: 16px;
+      }
+
+      /* top-left persistent title tag */
+      #page-tag{
+        position: fixed;
+        top: 18px;
+        left: 20px;
+        z-index: 15;
+        font-family: var(--font-mono);
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        color: var(--ink-dim);
+        pointer-events: none;
+      }
+
+      #page-tag b{
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      @media (max-width: 560px){
+        .reveal-frame{ width: 160px; height: 160px; }
+        .glyph{ font-size: 78px; }
+        .bar-wrap{ width: 240px; }
+        .boot-title{ font-size: 17px; }
+        #page-tag{ font-size: 11px; top: 12px; left: 14px; }
+      }
+    </style>
+  </head>
+  <body>
+
+    <div id="page-tag"><b>Who's that developer?</b> — a portfolio you play</div>
+
+    <div id="boot-screen">
+      <div class="boot-eyebrow">initializing <span>build</span></div>
+
+      <div class="reveal-frame">
+        <div class="glyph" id="glyph">?</div>
+        <div class="scan" id="scan"></div>
+      </div>
+
+      <div class="boot-title">WHO'S THAT DEVELOPER<span class="cursor">&nbsp;</span></div>
+
+      <div class="bar-wrap">
+        <div class="bar-track">
+          <div class="bar-fill" id="bar-fill"></div>
+        </div>
+        <div class="bar-meta">
+          <span id="bar-label">loading assets</span>
+          <span id="bar-percent">0%</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="unity-container">
+      <canvas id="unity-canvas" tabindex="-1"></canvas>
+      <div id="unity-warning"></div>
+      <div id="unity-footer">
+        <div id="unity-fullscreen-button"></div>
+        <div id="unity-build-title">Portfolio</div>
+      </div>
+    </div>
+
+    <script>
+      var canvas = document.querySelector("#unity-canvas");
+
+      // ---- lock the game to a 1920x1080 landscape window, scaled to ----
+      // ---- fit the browser as large as possible without cropping    ----
+      var GAME_W = 1920;
+      var GAME_H = 1080;
+      var GAME_RATIO = GAME_W / GAME_H;
+
+      // fixed internal render resolution: the game always renders at
+      // 1920x1080 and is then scaled visually, it never re-renders at
+      // an odd/cropped resolution
+      canvas.width = GAME_W;
+      canvas.height = GAME_H;
+
+      function fitCanvasToWindow() {
+        var winW = window.innerWidth;
+        var winH = window.innerHeight;
+        var winRatio = winW / winH;
+
+        var scale;
+        if (winRatio > GAME_RATIO) {
+          // window wider than 16:9 -> height is the limiting dimension
+          scale = winH / GAME_H;
+        } else {
+          // window taller/narrower than 16:9 -> width is the limiting dimension
+          scale = winW / GAME_W;
+        }
+
+        var displayW = Math.round(GAME_W * scale);
+        var displayH = Math.round(GAME_H * scale);
+
+        canvas.style.width = displayW + "px";
+        canvas.style.height = displayH + "px";
+      }
+
+      window.addEventListener("resize", fitCanvasToWindow);
+      window.addEventListener("orientationchange", fitCanvasToWindow);
+      fitCanvasToWindow();
+
+      var bootScreen  = document.querySelector("#boot-screen");
+      var barFill      = document.querySelector("#bar-fill");
+      var barPercent   = document.querySelector("#bar-percent");
+      var barLabel     = document.querySelector("#bar-label");
+      var glyph        = document.querySelector("#glyph");
+      var scanLine     = document.querySelector("#scan");
+
+      function unityShowBanner(msg, type) {
+        var warningBanner = document.querySelector("#unity-warning");
+        function updateBannerVisibility() {
+          warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
+        }
+        var div = document.createElement('div');
+        div.innerHTML = msg;
+        warningBanner.appendChild(div);
+        if (type == 'error') {
+          div.style = 'background:#3a1418; color:#ff7a59; border:1px solid #ff7a59; padding:10px 14px; border-radius:6px; font-family: JetBrains Mono, monospace; font-size:12px;';
+        } else {
+          if (type == 'warning') {
+            div.style = 'background:#2a2410; color:#ffd166; border:1px solid #ffd166; padding:10px 14px; border-radius:6px; font-family: JetBrains Mono, monospace; font-size:12px;';
+          }
+          setTimeout(function() {
+            warningBanner.removeChild(div);
+            updateBannerVisibility();
+          }, 5000);
+        }
+        updateBannerVisibility();
+      }
+
+      var buildUrl = "Build";
+      var loaderUrl = buildUrl + "/Portfolio-Build.loader.js";
+      var config = {
+        arguments: [],
+        dataUrl: buildUrl + "/Portfolio-Build.data",
+        frameworkUrl: buildUrl + "/Portfolio-Build.framework.js",
+        codeUrl: buildUrl + "/Portfolio-Build.wasm",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "DefaultCompany",
+        productName: "Portfolio",
+        productVersion: "1.0",
+        showBanner: unityShowBanner,
+      };
+
+      // keep the WebGL render target locked at 1920x1080 -- do NOT let
+      // Unity resync it to the (scaled) CSS display size
+      config.matchWebGLToCanvasSize = false;
+      config.devicePixelRatio = 1;
+
+      var script = document.createElement("script");
+      script.src = loaderUrl;
+      script.onload = () => {
+        createUnityInstance(canvas, config, (progress) => {
+          var pct = Math.round(progress * 100);
+          barFill.style.width = pct + "%";
+          barPercent.textContent = pct + "%";
+
+          // desaturate-to-color reveal as loading nears completion
+          glyph.style.filter = "brightness(" + (0.2 + progress * 0.8) + ") contrast(" + (0 + progress) + ")";
+          scanLine.style.transform = "translateY(" + (progress * 220) + "px)";
+
+          if (pct > 92) {
+            barLabel.textContent = "almost there";
+          } else if (pct > 55) {
+            barLabel.textContent = "compiling scenes";
+          }
+        }).then((unityInstance) => {
+          barLabel.textContent = "ready";
+          glyph.textContent = "!";
+          glyph.style.filter = "none";
+
+          setTimeout(function () {
+            bootScreen.classList.add("hidden");
+          }, 350);
+
+          document.querySelector("#unity-fullscreen-button").onclick = () => {
+            unityInstance.SetFullscreen(1);
+          };
+        }).catch((message) => {
+          barLabel.textContent = "load failed";
+          unityShowBanner(message, 'error');
+        });
+      };
+
+      document.body.appendChild(script);
+    </script>
+  </body>
+</html>

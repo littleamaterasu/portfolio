@@ -1,0 +1,41 @@
+server {
+    listen       ${PORT} default_server;
+    listen       [::]:${PORT} default_server;
+    server_name  _;
+
+    root   /usr/share/nginx/html;
+    index  index.html;
+
+    # Unity WebGL cần đúng MIME type cho các file này, một số bản nginx
+    # cũ không có sẵn trong mime.types
+    types {
+        application/wasm        wasm;
+        application/octet-stream data;
+        application/javascript  js;
+    }
+
+    # nếu Unity build có Compression Format = Gzip (mặc định), Unity sẽ
+    # sinh ra .data.gz/.wasm.gz/.framework.js.gz -- gzip_static tự phục vụ
+    # đúng file nén kèm header Content-Encoding: gzip, không cần cấu hình gì thêm
+    gzip_static on;
+    gzip_vary   on;
+
+    # index.html không cache, để mỗi lần deploy bản mới browser luôn lấy bản mới nhất
+    location = /index.html {
+        add_header Cache-Control "no-cache";
+    }
+
+    # asset build & streaming assets: cache dài hạn, vì mỗi lần build lại
+    # Unity thường tạo build mới hoàn toàn (thay cả thư mục)
+    location /Build/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    location /StreamingAssets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
