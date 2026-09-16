@@ -7,10 +7,13 @@
   <meta name="description" content="Play Pham Son Tung's interactive portfolio and Slot Machine game.">
   <title>Who's that developer? | Portfolio</title>
   <link rel="icon" href="Portfolio/TemplateData/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link id="montserrat-font" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800;900&display=swap" rel="stylesheet">
   <style>
     :root { --ink: #171717; --paper: #f7f5ee; --accent: #ffe24b; --pink: #ff8dc7; --shadow: 5px 5px 0 var(--ink); }
     * { box-sizing: border-box; }
-    body { margin: 0; color: var(--ink); background: var(--paper); font-family: 'Arial', sans-serif; }
+    body { margin: 0; color: var(--ink); background: var(--paper); font-family: 'Montserrat', sans-serif; }
     button { color: inherit; font: inherit; cursor: pointer; }
     button:focus-visible { outline: 3px solid #3157ff; outline-offset: 5px; }
     .workspace { min-height: 100vh; min-height: 100dvh; padding: 24px 28px 16px; display: flex; flex-direction: column; gap: 20px; }
@@ -20,7 +23,7 @@
     h1 { margin: 0; font-size: clamp(18px, 2vw, 26px); font-weight: 900; letter-spacing: -1px; }
     .tabs { display: flex; gap: 12px; }
     .tab { min-height: 48px; padding: 10px 20px; border: 3px solid; background: white; box-shadow: var(--shadow); font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 14px; }
-    .tab small { font-family: monospace; font-size: 13px; }
+    .tab small { font-size: 13px; }
     .tab:hover { transform: translate(-1px, -1px); box-shadow: 6px 6px 0 var(--ink); }
     .tab[aria-selected="true"] { background: var(--accent); transform: translate(3px, 3px); box-shadow: 2px 2px 0 var(--ink); }
     #tab-slotmachine[aria-selected="true"] { background: var(--pink); }
@@ -34,7 +37,7 @@
     .fullscreen svg { width: 16px; height: 16px; }
     .player-space { position: relative; flex: 1; min-height: 300px; }
     iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
-    .footer { display: flex; justify-content: space-between; gap: 12px; font-family: 'Courier New', monospace; font-size: 12px; font-weight: 700; }
+    .footer { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; font-weight: 700; }
     .footer span:last-child { text-align: right; }
     .workspace:fullscreen { background: var(--paper); }
     @media (max-width: 680px) {
@@ -154,7 +157,7 @@
     const playerStyles = `
       * { box-sizing: border-box; }
       html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
-      body { color: #171717; background: #202020; font-family: Arial, sans-serif; display: grid; place-items: center; }
+      body { color: #171717; background: #202020; font-family: 'Montserrat', sans-serif; display: grid; place-items: center; }
       canvas { display: block; background: #202020; }
       #loading { position: fixed; inset: 0; display: grid; place-items: center; padding: 22px; overflow: auto; background-color: #f7f5ee; background-image: linear-gradient(#17171712 1px, transparent 1px), linear-gradient(90deg, #17171712 1px, transparent 1px); background-size: 32px 32px; }
       #loading[hidden], [hidden] { display: none !important; }
@@ -167,8 +170,8 @@
       progress::-webkit-progress-bar { background: #f7f5ee; }
       progress::-webkit-progress-value { background: var(--accent); }
       progress::-moz-progress-bar { background: var(--accent); }
-      #percent { font: bold 14px 'Courier New', monospace; min-width: 4ch; text-align: right; }
-      #retry { padding: 10px 18px; border: 3px solid; background: var(--accent); box-shadow: 3px 3px 0; font: bold 16px Arial, sans-serif; cursor: pointer; }
+      #percent { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 4ch; text-align: right; }
+      #retry { padding: 10px 18px; border: 3px solid; background: var(--accent); box-shadow: 3px 3px 0; font: bold 16px 'Montserrat', sans-serif; cursor: pointer; }
       #retry:focus-visible { outline: 3px solid #3157ff; outline-offset: 5px; }
       #warning { position: fixed; top: 12px; left: 12px; right: 12px; pointer-events: none; }
       #warning div { padding: 12px; border: 3px solid; background: #ffe24b; font-size: 14px; margin-bottom: 8px; }
@@ -181,6 +184,7 @@
     const tabs = [...document.querySelectorAll('[role="tab"]')];
     const panel = document.getElementById('player-panel');
     const space = document.getElementById('player-space');
+    const fontStylesheet = document.getElementById('montserrat-font').outerHTML;
     let activeGame;
     let frame;
 
@@ -203,7 +207,7 @@
       const nextFrame = document.createElement('iframe');
       nextFrame.title = experience.title + ' player';
       nextFrame.allow = 'fullscreen; autoplay';
-      nextFrame.srcdoc = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">${base.outerHTML}<style>:root { --accent: ${experience.color}; }${playerStyles}</style></head><body>
+      nextFrame.srcdoc = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">${base.outerHTML}${fontStylesheet}<style>:root { --accent: ${experience.color}; }${playerStyles}</style></head><body>
         <canvas id="unity-canvas" tabindex="0"></canvas>
         <div id="loading"><div class="card"><div class="sticker" aria-hidden="true">${experience.glyph}</div><h2 id="loading-title">${experience.title}</h2><p id="loading-label" role="status">Loading ${experience.title}...</p><div class="progress-row"><progress id="progress" max="100" value="0" aria-label="Loading progress"></progress><span id="percent">0%</span></div><button id="retry" type="button" hidden>Try again</button></div></div>
         <div id="warning" role="alert"></div><script>(${runPlayer.toString()})(${JSON.stringify(game)});<\/script></body></html>`;
