@@ -1,9 +1,0 @@
-services:
-  unity-portfolio:
-    build: .
-    container_name: whos-that-developer
-    ports:
-      - "8080:8080"
-    environment:
-      - PORT=8080
-    restart: unless-stopped
