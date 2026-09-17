@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f5ee">
-  <meta name="description" content="Play Pham Son Tung's interactive portfolio and Slot Machine game.">
+  <meta name="description" content="Play Pham Son Tung's interactive portfolio, Slot Machine, and 3D Puzzle games.">
   <title>Who's that developer? | Portfolio</title>
   <link rel="icon" href="Portfolio/TemplateData/favicon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,15 +21,17 @@
     .brand { display: flex; align-items: center; gap: 14px; }
     .brand-mark { width: 48px; height: 48px; display: grid; place-items: center; border: 3px solid; background: var(--accent); box-shadow: 3px 3px 0 var(--ink); font-size: 32px; font-weight: 900; transform: rotate(-5deg); }
     h1 { margin: 0; font-size: clamp(18px, 2vw, 26px); font-weight: 900; letter-spacing: -1px; }
-    .tabs { display: flex; gap: 12px; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 12px; }
     .tab { min-height: 48px; padding: 10px 20px; border: 3px solid; background: white; box-shadow: var(--shadow); font-size: 16px; font-weight: 800; display: flex; align-items: center; gap: 14px; }
     .tab small { font-size: 13px; }
     .tab:hover { transform: translate(-1px, -1px); box-shadow: 6px 6px 0 var(--ink); }
     .tab[aria-selected="true"] { background: var(--accent); transform: translate(3px, 3px); box-shadow: 2px 2px 0 var(--ink); }
     #tab-slotmachine[aria-selected="true"] { background: var(--pink); }
+    #tab-puzzle[aria-selected="true"] { background: #8de2c7; }
     .player-panel { flex: 1; min-height: 360px; display: flex; flex-direction: column; border: 3px solid; background: white; box-shadow: 7px 7px 0 var(--ink); }
     .panel-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 16px; border-bottom: 3px solid; background: var(--accent); }
     body[data-game="slotmachine"] { --accent: var(--pink); }
+    body[data-game="puzzle"] { --accent: #8de2c7; }
     .panel-heading { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 800; }
     .dot { width: 10px; height: 10px; border: 2px solid; background: white; }
     .fullscreen { display: flex; align-items: center; gap: 8px; border: 2px solid; padding: 7px 10px; background: white; box-shadow: 2px 2px 0; font-size: 14px; font-weight: 700; }
@@ -37,6 +39,7 @@
     .fullscreen svg { width: 16px; height: 16px; }
     .player-space { position: relative; flex: 1; min-height: 300px; }
     iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+    iframe[hidden] { display: block; visibility: hidden; pointer-events: none; }
     .footer { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; font-weight: 700; }
     .footer span:last-child { text-align: right; }
     .workspace:fullscreen { background: var(--paper); }
@@ -61,6 +64,7 @@
       <nav class="tabs" role="tablist" aria-label="Choose an experience">
         <button class="tab" id="tab-portfolio" type="button" role="tab" aria-selected="true" aria-controls="player-panel" data-game="portfolio"><small aria-hidden="true">01</small> Portfolio</button>
         <button class="tab" id="tab-slotmachine" type="button" role="tab" aria-selected="false" aria-controls="player-panel" tabindex="-1" data-game="slotmachine"><small aria-hidden="true">02</small> Slot Machine</button>
+        <button class="tab" id="tab-puzzle" type="button" role="tab" aria-selected="false" aria-controls="player-panel" tabindex="-1" data-game="puzzle"><small aria-hidden="true">03</small> 3D Puzzle</button>
       </nav>
     </header>
     <main class="player-panel" id="player-panel" role="tabpanel" aria-labelledby="tab-portfolio">
@@ -73,15 +77,16 @@
       <div class="player-space" id="player-space"></div>
     </main>
     <footer class="footer"><span>PHAM SON TUNG &copy; <span id="year"></span></span><span id="experience-note">Explore the interactive portfolio.</span></footer>
-    <noscript>Please enable JavaScript to play the portfolio or Slot Machine.</noscript>
+    <noscript>Please enable JavaScript to play the portfolio, Slot Machine, or 3D Puzzle.</noscript>
   </div>
   <script>
-    // Each build runs in its own document. Replacing the iframe releases the
-    // previous Unity runtime and prevents loader/global conflicts between builds.
+    // Each build runs in its own document to isolate Unity loaders and globals.
+    // Keep visited players mounted until page reload to preserve their runtime.
     function runPlayer(game) {
       const builds = {
         portfolio: { folder: 'Portfolio', file: 'Portfolio-Build', name: 'Portfolio', width: 1920, height: 1080 },
-        slotmachine: { folder: 'SlotMachine', file: 'SlotMachine', name: 'Slot Machine', width: 960, height: 600 }
+        slotmachine: { folder: 'SlotMachine', file: 'SlotMachine', name: 'Slot Machine', width: 960, height: 600 },
+        puzzle: { folder: '3DPuzzle', file: '3DPuzzle', name: '3D Puzzle', productName: 'game-unity-3d-puzzle', productVersion: '0.1.0', width: 960, height: 600 }
       };
       const build = builds[game];
       const assetUrl = path => new URL(build.folder + '/' + path, document.baseURI).href;
@@ -124,8 +129,8 @@
         codeUrl: assetUrl('Build/' + build.file + '.wasm'),
         streamingAssetsUrl: assetUrl('StreamingAssets'),
         companyName: 'DefaultCompany',
-        productName: game === 'portfolio' ? 'Portfolio' : 'SlotMachine',
-        productVersion: '1.0',
+        productName: build.productName || (game === 'portfolio' ? 'Portfolio' : 'SlotMachine'),
+        productVersion: build.productVersion || '1.0',
         matchWebGLToCanvasSize: false,
         devicePixelRatio: 1,
         showBanner: (message, type) => {
@@ -148,7 +153,10 @@
             percent.textContent = pct + '%';
             label.textContent = pct > 90 ? 'Almost ready...' : 'Loading ' + build.name + '...';
           });
-          if (!failed) { loading.hidden = true; canvas.focus({ preventScroll: true }); }
+          if (!failed) {
+            loading.hidden = true;
+            if (window.parent.document.body.dataset.game === game) canvas.focus({ preventScroll: true });
+          }
         } catch (error) { fail(error); }
       };
       document.body.appendChild(script);
@@ -179,12 +187,14 @@
     `;
     const games = {
       portfolio: { label: 'PORTFOLIO / PLAYABLE', note: 'Explore the interactive portfolio.', title: 'Portfolio', color: '#ffe24b', glyph: '?' },
-      slotmachine: { label: 'SLOT MACHINE / PLAYABLE', note: 'Play the Slot Machine demo.', title: 'Slot Machine', color: '#ff8dc7', glyph: '7' }
+      slotmachine: { label: 'SLOT MACHINE / PLAYABLE', note: 'Play the Slot Machine demo.', title: 'Slot Machine', color: '#ff8dc7', glyph: '7' },
+      puzzle: { label: '3D PUZZLE / PLAYABLE', note: 'Play the 3D Puzzle demo.', title: '3D Puzzle', color: '#8de2c7', glyph: '3D' }
     };
     const tabs = [...document.querySelectorAll('[role="tab"]')];
     const panel = document.getElementById('player-panel');
     const space = document.getElementById('player-space');
     const fontStylesheet = document.getElementById('montserrat-font').outerHTML;
+    const playerFrames = new Map();
     let activeGame;
     let frame;
 
@@ -202,6 +212,24 @@
         tab.setAttribute('aria-selected', String(selected));
         tab.tabIndex = selected ? 0 : -1;
       });
+      if (force) {
+        playerFrames.get(game)?.remove();
+        playerFrames.delete(game);
+      }
+      if (!playerFrames.has(game)) {
+        const nextFrame = createPlayerFrame(game);
+        playerFrames.set(game, nextFrame);
+        space.appendChild(nextFrame);
+      }
+      playerFrames.forEach((player, key) => {
+        player.hidden = key !== game;
+        player.inert = key !== game;
+      });
+      frame = playerFrames.get(game);
+    }
+
+    function createPlayerFrame(game) {
+      const experience = games[game];
       const base = document.createElement('base');
       base.href = new URL('.', window.location.href).href;
       const nextFrame = document.createElement('iframe');
@@ -211,8 +239,7 @@
         <canvas id="unity-canvas" tabindex="0"></canvas>
         <div id="loading"><div class="card"><div class="sticker" aria-hidden="true">${experience.glyph}</div><h2 id="loading-title">${experience.title}</h2><p id="loading-label" role="status">Loading ${experience.title}...</p><div class="progress-row"><progress id="progress" max="100" value="0" aria-label="Loading progress"></progress><span id="percent">0%</span></div><button id="retry" type="button" hidden>Try again</button></div></div>
         <div id="warning" role="alert"></div><script>(${runPlayer.toString()})(${JSON.stringify(game)});<\/script></body></html>`;
-      space.replaceChildren(nextFrame);
-      frame = nextFrame;
+      return nextFrame;
     }
     tabs.forEach((tab, index) => {
       tab.addEventListener('click', () => selectGame(tab.dataset.game));
