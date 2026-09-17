@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f7f5ee">
-  <meta name="description" content="Play Pham Son Tung's interactive portfolio, Slot Machine, and 3D Puzzle games.">
+  <meta name="description" content="Play Pham Son Tung's interactive portfolio, Slot Machine, 3D Puzzle, and Farm games.">
   <title>Who's that developer? | Portfolio</title>
   <link rel="icon" href="Portfolio/TemplateData/favicon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,10 +28,12 @@
     .tab[aria-selected="true"] { background: var(--accent); transform: translate(3px, 3px); box-shadow: 2px 2px 0 var(--ink); }
     #tab-slotmachine[aria-selected="true"] { background: var(--pink); }
     #tab-puzzle[aria-selected="true"] { background: #8de2c7; }
+    #tab-farm[aria-selected="true"] { background: #b9e879; }
     .player-panel { flex: 1; min-height: 360px; display: flex; flex-direction: column; border: 3px solid; background: white; box-shadow: 7px 7px 0 var(--ink); }
     .panel-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 16px; border-bottom: 3px solid; background: var(--accent); }
     body[data-game="slotmachine"] { --accent: var(--pink); }
     body[data-game="puzzle"] { --accent: #8de2c7; }
+    body[data-game="farm"] { --accent: #b9e879; }
     .panel-heading { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 800; }
     .dot { width: 10px; height: 10px; border: 2px solid; background: white; }
     .fullscreen { display: flex; align-items: center; gap: 8px; border: 2px solid; padding: 7px 10px; background: white; box-shadow: 2px 2px 0; font-size: 14px; font-weight: 700; }
@@ -65,6 +67,7 @@
         <button class="tab" id="tab-portfolio" type="button" role="tab" aria-selected="true" aria-controls="player-panel" data-game="portfolio"><small aria-hidden="true">01</small> Portfolio</button>
         <button class="tab" id="tab-slotmachine" type="button" role="tab" aria-selected="false" aria-controls="player-panel" tabindex="-1" data-game="slotmachine"><small aria-hidden="true">02</small> Slot Machine</button>
         <button class="tab" id="tab-puzzle" type="button" role="tab" aria-selected="false" aria-controls="player-panel" tabindex="-1" data-game="puzzle"><small aria-hidden="true">03</small> 3D Puzzle</button>
+        <button class="tab" id="tab-farm" type="button" role="tab" aria-selected="false" aria-controls="player-panel" tabindex="-1" data-game="farm"><small aria-hidden="true">04</small> Farm</button>
       </nav>
     </header>
     <main class="player-panel" id="player-panel" role="tabpanel" aria-labelledby="tab-portfolio">
@@ -77,7 +80,7 @@
       <div class="player-space" id="player-space"></div>
     </main>
     <footer class="footer"><span>PHAM SON TUNG &copy; <span id="year"></span></span><span id="experience-note">Explore the interactive portfolio.</span></footer>
-    <noscript>Please enable JavaScript to play the portfolio, Slot Machine, or 3D Puzzle.</noscript>
+    <noscript>Please enable JavaScript to play the portfolio, Slot Machine, 3D Puzzle, or Farm.</noscript>
   </div>
   <script>
     // Each build runs in its own document to isolate Unity loaders and globals.
@@ -86,7 +89,8 @@
       const builds = {
         portfolio: { folder: 'Portfolio', file: 'Portfolio-Build', name: 'Portfolio', width: 1920, height: 1080 },
         slotmachine: { folder: 'SlotMachine', file: 'SlotMachine', name: 'Slot Machine', width: 960, height: 600 },
-        puzzle: { folder: '3DPuzzle', file: '3DPuzzle', name: '3D Puzzle', productName: 'game-unity-3d-puzzle', productVersion: '0.1.0', width: 960, height: 600 }
+        puzzle: { folder: '3DPuzzle', file: '3DPuzzle', name: '3D Puzzle', productName: 'game-unity-3d-puzzle', productVersion: '0.1.0', width: 960, height: 600 },
+        farm: { folder: 'Farm', file: 'Farm', name: 'Farm', productName: 'Farm', productVersion: '0.1.0', width: 960, height: 600 }
       };
       const build = builds[game];
       let unityInstance;
@@ -242,7 +246,8 @@
     const games = {
       portfolio: { label: 'PORTFOLIO / PLAYABLE', note: 'Explore the interactive portfolio.', title: 'Portfolio', color: '#ffe24b', glyph: '?' },
       slotmachine: { label: 'SLOT MACHINE / PLAYABLE', note: 'Play the Slot Machine demo.', title: 'Slot Machine', color: '#ff8dc7', glyph: '7' },
-      puzzle: { label: '3D PUZZLE / PLAYABLE', note: 'Play the 3D Puzzle demo.', title: '3D Puzzle', color: '#8de2c7', glyph: '3D' }
+      puzzle: { label: '3D PUZZLE / PLAYABLE', note: 'Play the 3D Puzzle demo.', title: '3D Puzzle', color: '#8de2c7', glyph: '3D' },
+      farm: { label: 'FARM / PLAYABLE', note: 'Play the Farm demo.', title: 'Farm', color: '#b9e879', glyph: 'F' }
     };
     const tabs = [...document.querySelectorAll('[role="tab"]')];
     const panel = document.getElementById('player-panel');
