@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -40,6 +40,13 @@
     .fullscreen:active { transform: translate(2px, 2px); box-shadow: none; }
     .fullscreen svg { width: 16px; height: 16px; }
     .player-space { position: relative; flex: 1; min-height: 300px; }
+    .launch-overlay { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; padding: 24px; background: #f7f5ee; background-image: linear-gradient(#17171712 1px, transparent 1px), linear-gradient(90deg, #17171712 1px, transparent 1px); background-size: 32px 32px; }
+    .launch-overlay[hidden] { display: none; }
+    .launch-card { width: min(420px, 100%); border: 3px solid; background: white; padding: 28px; box-shadow: 8px 8px 0 var(--ink); text-align: center; }
+    .launch-card h2 { margin: 0 0 10px; font-size: clamp(24px, 4vw, 36px); font-weight: 900; letter-spacing: -1px; }
+    .launch-card p { margin: 0 0 20px; font-size: 14px; line-height: 1.5; }
+    .launch-button { min-width: 180px; min-height: 52px; padding: 10px 20px; border: 3px solid; background: var(--accent); box-shadow: 4px 4px 0 var(--ink); font-size: 16px; font-weight: 900; }
+    .launch-button:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
     iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
     iframe[hidden] { display: block; visibility: hidden; pointer-events: none; }
     .footer { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; font-weight: 700; }
@@ -77,7 +84,15 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg><span id="fullscreen-label">Fullscreen</span>
         </button>
       </div>
-      <div class="player-space" id="player-space"></div>
+      <div class="player-space" id="player-space">
+        <div class="launch-overlay" id="launch-overlay">
+          <div class="launch-card">
+            <h2 id="launch-title">Portfolio</h2>
+            <p id="launch-copy">Load this experience when you are ready.</p>
+            <button class="launch-button" id="launch-button" type="button">Start Game</button>
+          </div>
+        </div>
+      </div>
     </main>
     <footer class="footer"><span>PHAM SON TUNG &copy; <span id="year"></span></span><span id="experience-note">Explore the interactive portfolio.</span></footer>
     <noscript>Please enable JavaScript to play the portfolio, Slot Machine, 3D Puzzle, or Farm.</noscript>
@@ -256,10 +271,22 @@
     const playerFrames = new Map();
     let activeGame;
     let frame;
+    let activeGameRunning = false;
+    const launchOverlay = document.getElementById('launch-overlay');
+    const launchTitle = document.getElementById('launch-title');
+    const launchCopy = document.getElementById('launch-copy');
+    const launchButton = document.getElementById('launch-button');
 
     function selectGame(game, force = false) {
       if (!games[game] || (activeGame === game && !force)) return;
+
+      // Leaving a game always pauses it. Returning requires an explicit Resume.
+      if (activeGame && playerFrames.has(activeGame)) {
+        playerFrames.get(activeGame)?.contentWindow?.setPlayerActive?.(false);
+      }
+
       activeGame = game;
+      activeGameRunning = false;
       const experience = games[game];
       document.body.dataset.game = game;
       document.title = "Who's that developer? | " + experience.title;
@@ -271,28 +298,54 @@
         tab.setAttribute('aria-selected', String(selected));
         tab.tabIndex = selected ? 0 : -1;
       });
+
       if (force) {
         playerFrames.get(game)?.remove();
         playerFrames.delete(game);
       }
-      if (!playerFrames.has(game)) {
-        const nextFrame = createPlayerFrame(game);
-        playerFrames.set(game, nextFrame);
-        space.appendChild(nextFrame);
-      }
+
       playerFrames.forEach((player, key) => {
         player.hidden = key !== game;
         player.inert = key !== game;
       });
+
       frame = playerFrames.get(game);
+      showLaunchState(playerFrames.has(game) ? 'resume' : 'start');
       syncPlayerActivity();
+    }
+
+    function showLaunchState(mode) {
+      const experience = games[activeGame];
+      launchTitle.textContent = experience.title;
+      launchButton.textContent = mode === 'resume' ? 'Resume Game' : 'Start Game';
+      launchCopy.textContent = mode === 'resume'
+        ? 'The game is paused and kept in memory.'
+        : 'The game will only download after you press Start Game.';
+      launchOverlay.hidden = false;
     }
 
     function syncPlayerActivity() {
       playerFrames.forEach((player, game) => {
-        player.contentWindow?.setPlayerActive?.(game === activeGame && !document.hidden);
+        player.contentWindow?.setPlayerActive?.(
+          game === activeGame && activeGameRunning && !document.hidden
+        );
       });
     }
+
+    launchButton.addEventListener('click', () => {
+      if (!playerFrames.has(activeGame)) {
+        const nextFrame = createPlayerFrame(activeGame);
+        playerFrames.set(activeGame, nextFrame);
+        space.insertBefore(nextFrame, launchOverlay);
+        frame = nextFrame;
+      }
+
+      activeGameRunning = true;
+      launchOverlay.hidden = true;
+      syncPlayerActivity();
+      frame?.focus?.({ preventScroll: true });
+    });
+
     document.addEventListener('visibilitychange', syncPlayerActivity);
 
     function createPlayerFrame(game) {
@@ -323,7 +376,7 @@
       });
     });
     window.addEventListener('message', event => {
-      if (frame && event.source === frame.contentWindow && event.origin === window.location.origin && event.data?.type === 'retry-player') selectGame(activeGame, true);
+      if (frame && event.source === frame.contentWindow && event.origin === window.location.origin && event.data?.type === 'retry-player') { selectGame(activeGame, true); launchButton.click(); }
     });
     const fullscreen = document.getElementById('fullscreen');
     const workspace = document.getElementById('workspace');
