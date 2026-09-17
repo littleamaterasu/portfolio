@@ -89,6 +89,59 @@
         puzzle: { folder: '3DPuzzle', file: '3DPuzzle', name: '3D Puzzle', productName: 'game-unity-3d-puzzle', productVersion: '0.1.0', width: 960, height: 600 }
       };
       const build = builds[game];
+      let unityInstance;
+      let paused = false;
+      let playerActive = window.parent.document.body.dataset.game === game && !window.parent.document.hidden;
+      const audioContexts = new Set();
+
+      // Unity owns its AudioContext inside the framework closure. Track contexts
+      // at creation so hidden players cannot resume audio through Unity's retries.
+      const NativeAudioContext = window.AudioContext || window.webkitAudioContext;
+      if (NativeAudioContext) {
+        class PlayerAudioContext extends NativeAudioContext {
+          constructor(...args) {
+            super(...args);
+            audioContexts.add(this);
+            this.addEventListener('statechange', () => {
+              if (!playerActive && this.state === 'running') this.suspend().catch(() => {});
+            });
+            if (!playerActive) this.suspend().catch(() => {});
+          }
+          resume() {
+            if (!playerActive) return Promise.resolve();
+            return super.resume().then(() => {
+              if (!playerActive && this.state === 'running') return this.suspend();
+            });
+          }
+        }
+        window.AudioContext = PlayerAudioContext;
+        if (window.webkitAudioContext) window.webkitAudioContext = PlayerAudioContext;
+      }
+
+      function syncAudio() {
+        audioContexts.forEach(context => {
+          if (context.state === 'closed') return;
+          if (playerActive && context.state === 'suspended') context.resume().catch(() => {});
+          else if (!playerActive && context.state === 'running') {
+            context.suspend().then(() => {
+              if (playerActive) return context.resume();
+            }).catch(() => {});
+          }
+        });
+      }
+
+      window.setPlayerActive = active => {
+        playerActive = Boolean(active);
+        if (unityInstance && paused === playerActive) {
+          if (playerActive) unityInstance.Module.resumeMainLoop();
+          else unityInstance.Module.pauseMainLoop();
+          paused = !playerActive;
+        }
+        syncAudio();
+      };
+      // Browsers may require another interaction before audio can resume.
+      window.addEventListener('pointerdown', syncAudio);
+      window.addEventListener('keydown', syncAudio);
       const assetUrl = path => new URL(build.folder + '/' + path, document.baseURI).href;
       const canvas = document.getElementById('unity-canvas');
       const loading = document.getElementById('loading');
@@ -146,16 +199,17 @@
       script.onerror = () => fail('The player could not be downloaded. Please try again.');
       script.onload = async () => {
         try {
-          await createUnityInstance(canvas, config, value => {
+          unityInstance = await createUnityInstance(canvas, config, value => {
             if (failed) return;
             const pct = Math.round(value * 100);
             progress.value = pct;
             percent.textContent = pct + '%';
             label.textContent = pct > 90 ? 'Almost ready...' : 'Loading ' + build.name + '...';
           });
+          window.setPlayerActive(window.parent.document.body.dataset.game === game && !window.parent.document.hidden);
           if (!failed) {
             loading.hidden = true;
-            if (window.parent.document.body.dataset.game === game) canvas.focus({ preventScroll: true });
+            if (playerActive) canvas.focus({ preventScroll: true });
           }
         } catch (error) { fail(error); }
       };
@@ -226,7 +280,15 @@
         player.inert = key !== game;
       });
       frame = playerFrames.get(game);
+      syncPlayerActivity();
     }
+
+    function syncPlayerActivity() {
+      playerFrames.forEach((player, game) => {
+        player.contentWindow?.setPlayerActive?.(game === activeGame && !document.hidden);
+      });
+    }
+    document.addEventListener('visibilitychange', syncPlayerActivity);
 
     function createPlayerFrame(game) {
       const experience = games[game];
